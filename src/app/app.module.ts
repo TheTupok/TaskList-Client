@@ -13,6 +13,7 @@ import {ClickOutsideModule} from "ng4-click-outside";
 import {WebsocketModule} from "./core/websocket";
 
 import {environment} from "../environments/environment";
+import {ReactiveFormsModule} from "@angular/forms";
 
 @NgModule({
   declarations: [
@@ -30,7 +31,8 @@ import {environment} from "../environments/environment";
     ClickOutsideModule,
     WebsocketModule.config({
       url: environment.ws
-    })
+    }),
+    ReactiveFormsModule
   ],
   providers: [],
   bootstrap: [AppComponent]

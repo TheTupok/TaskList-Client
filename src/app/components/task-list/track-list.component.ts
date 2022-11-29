@@ -5,12 +5,15 @@ import {MatTableDataSource} from "@angular/material/table";
 import {Sort} from "@angular/material/sort";
 import {Observable, Subscription} from "rxjs";
 import {IWsMessage, WebSocketService} from "../../core/websocket";
+import {FormBuilder, FormGroup} from "@angular/forms";
+import {DateService} from "../../core/services/convertDate.service";
 
 
 export interface ITask {
-  task: string;
+  id: number;
+  taskName: string;
   executor: string;
-  members: string[];
+  members: string[] | string;
   deadline: string;
   dateOfCompleted: string;
   status: string;
@@ -35,10 +38,16 @@ export class TaskListComponent implements AfterViewInit, OnInit {
 
   @ViewChild(MatPaginator) paginator: MatPaginator;
 
-  dataSource = new MatTableDataSource<ITask>(ELEMENT_DATA);
-  columnsToDisplay = ['task', 'executor', 'deadline', 'dateOfCompleted', 'status'];
+  public formEditTask: FormGroup;
+
+  dataSource = new MatTableDataSource<ITask>();
+  columnsToDisplay = ['taskName', 'executor', 'deadline', 'dateOfCompleted', 'status'];
   columnsToDisplayWithExpand = [...this.columnsToDisplay, 'expand'];
   expandedElement: ITask | null;
+
+  taskList: ITask[];
+
+  editIdTask = 0;
 
   private message$: Observable<IWsMessage>;
   private _subscriptionMessage$: Subscription;
@@ -46,10 +55,14 @@ export class TaskListComponent implements AfterViewInit, OnInit {
   private status$: Observable<boolean>;
   private _subscriptionStatus$: Subscription;
 
-  constructor(private wsService: WebSocketService) {
+  constructor(private wsService: WebSocketService,
+              private fb: FormBuilder,
+              public dateService: DateService) {
   }
 
   ngOnInit() {
+    this._createFormEditTask();
+
     this.message$ = this.wsService.on();
     this._subscriptionMessage$ = this.message$.subscribe(data => {
       this.wsMessageHandler(data);
@@ -71,23 +84,33 @@ export class TaskListComponent implements AfterViewInit, OnInit {
     this.dataSource.paginator = this.paginator;
   }
 
+  private _createFormEditTask() {
+    this.formEditTask = this.fb.group({
+      taskName: '',
+      executor: '',
+      deadline: '',
+      dateOfCompleted: '',
+      status: '',
+      description: ''
+    })
+  }
+
   wsMessageHandler(data: IWsMessage) {
     const typeOperation = data.typeOperation;
 
     if (typeOperation == 'getTaskList') {
-
+      data['response'].forEach((item: ITask) => {
+        if (typeof item.members === "string") {
+          item.members = JSON.parse(item.members)
+        }
+      })
+      this.taskList = data['response'];
     }
   }
 
-  closeMembersList() {
-    const contextMenu = document.getElementsByClassName('element-members-list') as HTMLCollection;
-    Array.prototype.forEach.call(contextMenu, (elem) => {
-      elem.classList.remove('visible');
-    })
-  }
-
-  openMembersList(e: MouseEvent) {
+  openMembersList(e: Event) {
     this.closeMembersList();
+    e.stopPropagation();
 
     const target = e.target as HTMLElement;
     const parent = target.closest('td') as HTMLElement;
@@ -99,12 +122,70 @@ export class TaskListComponent implements AfterViewInit, OnInit {
     contextMenu.classList.add('visible');
   }
 
-  handlePageEvent(e: PageEvent) {
-    console.log(e);
+  closeMembersList() {
+    const contextMenu = document.getElementsByClassName('element-members-list') as HTMLCollection;
+    Array.prototype.forEach.call(contextMenu, (elem) => {
+      elem.classList.remove('visible');
+    })
   }
 
-  sortChange(e: Sort) {
-    console.log(e);
+  editTask(element: ITask) {
+    this.editIdTask = element.id;
+
+    const dataTask = Object.fromEntries(Object.entries(element).filter(([key]) =>
+      key != 'id' && key != 'members'
+    ))
+    dataTask['deadline'] = this.dateService.convertDate(dataTask['deadline']);
+    this.formEditTask.setValue(dataTask);
+  }
+
+  saveChangesTask(members: string[]) {
+    const editTask = this.formEditTask.getRawValue();
+    editTask.id = this.editIdTask;
+    editTask.members = members;
+
+    this.wsService.send({ typeOperation: 'editTask', request: editTask });
+
+    this.editIdTask = 0;
+  }
+
+  addMember(elementId: number, newMember: HTMLInputElement) {
+    this.taskList.map((task: ITask) => {
+      if (task.id == elementId && typeof task.members !== "string") {
+        task.members.push(newMember.value);
+      }
+    })
+    newMember.value = '';
+  }
+
+  deleteMember(elementId: number, member: string) {
+    const editTask = this.taskList.find((task: ITask) => task.id == elementId) as ITask;
+    this.taskList.map((item: ITask) => {
+      if (item.id == elementId && typeof editTask.members !== "string") {
+        item.members = editTask.members.filter(item => item != member);
+      }
+    })
+  }
+
+  cancelChangesTask() {
+    this.editIdTask = 0;
+    this.wsService.send({ typeOperation: 'getTaskList' })
+  }
+
+  toggleExpandElement(element: ITask, event: Event) {
+    this.closeMembersList();
+    if (this.editIdTask == 0) {
+      this.expandedElement = this.expandedElement === element ? null : element;
+      event.stopPropagation()
+    }
+  }
+
+  handlePageEvent(event: PageEvent) {
+    console.log(event);
+  }
+
+  sortChange(event: Sort) {
+    console.log(event);
   }
 
   ngOnDestroy() {
@@ -112,33 +193,3 @@ export class TaskListComponent implements AfterViewInit, OnInit {
     this._subscriptionMessage$.unsubscribe();
   }
 }
-
-const ELEMENT_DATA: ITask[] = [
-  {
-    task: '1',
-    executor: 'Egor',
-    members: ['Hydrogen', '1'],
-    deadline: '23.12.22',
-    dateOfCompleted: '21.12.22',
-    status: `Completed`,
-    description: "Lorem ipsum dolor sit amet, consectetur adipLorem ipsum dolor sit amet, consectetur adipLorem ipsum dolor sit amet, consectetur adipLorem ipsum dolor sit amet, consectetur adipLorem ipsum dolor sit amet, consectetur adipLorem ipsum dolor sit amet, consectetur adipLorem ipsum dolor sit amet, consectetur adipLorem ipsum dolor sit amet, consectetur adipLorem ipsum dolor sit amet, consectetur adipLorem ipsum dolor sit amet, consectetur adipLorem ipsum dolor sit amet, consectetur adipLorem ipsum dolor sit amet, consectetur adipLorem ipsum dolor sit amet, consectetur adip"
-  },
-  {
-    task: '2',
-    executor: 'Anatoly Tereshonok',
-    members: ['Oxygen', 'Gold', 'Hydrogen'],
-    deadline: '23.12.22',
-    dateOfCompleted: '21.12.22',
-    status: `Work`,
-    description: "Lorem ipsum dolor sit amet, consectetur adipLorem ipsum dolor sit amet, consectetur adipLorem ipsum dolor sit amet, consectetur adipLorem ipsum dolor sit amet, consectetur adipLorem ipsum dolor sit amet, consectetur adipLorem ipsum dolor sit amet, consectetur adipLorem ipsum dolor sit amet, consectetur adipLorem ipsum dolor sit amet, consectetur adipLorem ipsum dolor sit amet, consectetur adipLorem ipsum dolor sit amet, consectetur adipLorem ipsum dolor sit amet, consectetur adipLorem ipsum dolor sit amet, consectetur adipLorem ipsum dolor sit amet, consectetur adip"
-  },
-  {
-    task: '3',
-    executor: 'John',
-    members: ['Gold', 'Hydrogen'],
-    deadline: '23.12.22',
-    dateOfCompleted: '21.12.22',
-    status: `Work`,
-    description: "Lorem ipsum dolor sit amet, consectetur adipLorem ipsum dolor sit amet, consectetur adipLorem ipsum dolor sit amet, consectetur adipLorem ipsum dolor sit amet, consectetur adipLorem ipsum dolor sit amet, consectetur adipLorem ipsum dolor sit amet, consectetur adipLorem ipsum dolor sit amet, consectetur adipLorem ipsum dolor sit amet, consectetur adipLorem ipsum dolor sit amet, consectetur adipLorem ipsum dolor sit amet, consectetur adipLorem ipsum dolor sit amet, consectetur adipLorem ipsum dolor sit amet, consectetur adipLorem ipsum dolor sit amet, consectetur adip"
-  },
-];
