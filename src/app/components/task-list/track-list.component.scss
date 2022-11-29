@@ -1,0 +1,114 @@
+table {
+  width: 100%;
+  transition: none !important;
+  box-shadow: none !important;
+}
+
+tr.detail-row {
+  height: 0;
+}
+
+tr.element-row:not(.expanded-row):hover {
+  background: whitesmoke;
+}
+
+tr.element-row:not(.expanded-row):active {
+  background: #efefef;
+}
+
+.element-row td {
+  border-bottom-width: 0;
+}
+
+.element-detail {
+  overflow: hidden;
+  display: flex;
+}
+
+.element-description {
+  width: 100%;
+  margin: 10px 0;
+
+  .element-icons {
+    float: right;
+
+    mat-icon {
+      margin-right: 10px;
+      cursor: pointer;
+
+      &.icon-edit:hover {
+        color: deepskyblue;
+      }
+
+      &.icon-delete:hover {
+        color: orangered;
+      }
+    }
+  }
+}
+
+.content-column {
+  display: flex;
+  margin-right: 15px;
+}
+
+#icon-members {
+  font-size: 20px;
+}
+
+.element-members-list {
+  position: fixed;
+  z-index: 1000;
+  width: 150px;
+  max-height: 100px;
+  background: #efefef;
+  border-radius: 0 5px 5px 5px;
+  overflow-y: scroll;
+  display: none;
+
+  &::-webkit-scrollbar {
+    border-left: 0.3px solid gray;
+    padding-left: 1px;
+    min-width: 10px;
+    width: 10px;
+    max-width: 10px;
+    min-height: 12px;
+    height: 12px;
+    max-height: 12px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: gray;
+    border-radius: 100px;
+  }
+
+  &::-webkit-scrollbar-thumb:hover {
+    background: gray;
+  }
+
+  &::-webkit-scrollbar-thumb:active {
+    background: gray;
+  }
+
+  .member {
+    border-bottom: 0.5px solid gray;
+    border-radius: 0;
+    padding: 8px 10px;
+    font-size: 15px;
+
+    &:last-child {
+      border-bottom: 0;
+    }
+  }
+}
+
+.element-members-list.visible {
+  display: block;
+}
+
+mat-paginator {
+  background-color: transparent;
+  position: sticky;
+  bottom: 0;
+}
+
