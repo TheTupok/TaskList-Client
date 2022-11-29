@@ -6,7 +6,7 @@ import {Sort} from "@angular/material/sort";
 import {Observable, Subscription} from "rxjs";
 import {IWsMessage, WebSocketService} from "../../core/websocket";
 import {FormBuilder, FormGroup} from "@angular/forms";
-import {DateService} from "../../core/services/convertDate.service";
+import {DateService} from "../../core/services/date.service";
 
 
 export interface ITask {
@@ -129,6 +129,10 @@ export class TaskListComponent implements AfterViewInit, OnInit {
     })
   }
 
+  addTask() {
+    this.wsService.send({ typeOperation: 'newTask' })
+  }
+
   editTask(element: ITask) {
     this.editIdTask = element.id;
 
@@ -139,6 +143,10 @@ export class TaskListComponent implements AfterViewInit, OnInit {
     this.formEditTask.setValue(dataTask);
   }
 
+  deleteTask(elementId: number) {
+    this.wsService.send({ typeOperation: 'deleteTask', request: elementId });
+  }
+
   saveChangesTask(members: string[]) {
     const editTask = this.formEditTask.getRawValue();
     editTask.id = this.editIdTask;
@@ -146,13 +154,18 @@ export class TaskListComponent implements AfterViewInit, OnInit {
 
     this.wsService.send({ typeOperation: 'editTask', request: editTask });
 
+    this.formEditTask.reset();
     this.editIdTask = 0;
   }
 
   addMember(elementId: number, newMember: HTMLInputElement) {
     this.taskList.map((task: ITask) => {
-      if (task.id == elementId && typeof task.members !== "string") {
-        task.members.push(newMember.value);
+      if (task.id == elementId && typeof task.members !== "string" && newMember.value != '') {
+        if (task.members) {
+          task.members.push(newMember.value);
+        } else {
+          task.members = [newMember.value];
+        }
       }
     })
     newMember.value = '';
@@ -170,6 +183,7 @@ export class TaskListComponent implements AfterViewInit, OnInit {
   cancelChangesTask() {
     this.editIdTask = 0;
     this.wsService.send({ typeOperation: 'getTaskList' })
+    this.formEditTask.reset();
   }
 
   toggleExpandElement(element: ITask, event: Event) {

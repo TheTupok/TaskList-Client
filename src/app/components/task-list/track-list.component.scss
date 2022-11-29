@@ -14,6 +14,11 @@
   color: orangered;
 }
 
+.icon-warning {
+  color: orangered;
+  font-size: 20px;
+}
+
 table {
   width: 100%;
   transition: none !important;
@@ -182,6 +187,12 @@ tr.element-row:not(.expanded-row):active {
 
 .element-members-list.visible {
   display: block;
+}
+
+.icon-add-task {
+  border: 0.5px solid gray;
+  border-radius: 50%;
+  margin: 20px;
 }
 
 mat-paginator {

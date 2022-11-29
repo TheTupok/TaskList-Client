@@ -13,6 +13,13 @@
             (click)="openMembersList($event)"
           >assignment_ind
           </mat-icon>
+          <mat-icon
+            *ngIf="column == 'deadline' &&
+                   this.dateService.checkCurrentAndDeadlineDate(element.deadline) &&
+                   element.status != 'Complete'"
+            class="icon-warning"
+          >error
+          </mat-icon>
         </div>
         <div *ngIf="this.editIdTask == element.id" class="content-column">
           <input
@@ -85,14 +92,27 @@
             <textarea *ngIf="this.editIdTask == element.id" rows="6"
                       formControlName="description"></textarea>
             <div class="element-icons">
-              <mat-icon (click)="this.saveChangesTask(element.members)" class="icon-check" *ngIf="this.editIdTask != 0">
+              <mat-icon
+                (click)="this.editTask(element)"
+                class="icon-edit"
+                *ngIf="this.editIdTask == 0 && element.status != 'Complete'">edit
+              </mat-icon>
+              <mat-icon
+                (click)="this.deleteTask(element.id)"
+                class="icon-delete"
+                *ngIf="this.editIdTask == 0">delete
+              </mat-icon>
+              <mat-icon
+                (click)="this.saveChangesTask(element.members)"
+                class="icon-check"
+                *ngIf="this.editIdTask != 0">
                 check
               </mat-icon>
-              <mat-icon (click)="this.cancelChangesTask()" class="icon-close" *ngIf="this.editIdTask != 0">close
+              <mat-icon
+                (click)="this.cancelChangesTask()"
+                class="icon-close"
+                *ngIf="this.editIdTask != 0">close
               </mat-icon>
-              <mat-icon (click)="this.editTask(element)" class="icon-edit" *ngIf="this.editIdTask == 0">edit
-              </mat-icon>
-              <mat-icon class="icon-delete" *ngIf="this.editIdTask == 0">delete</mat-icon>
             </div>
           </div>
         </div>
@@ -108,6 +128,8 @@
     <tr mat-row *matRowDef="let row; columns: ['expandedDetail']" class="detail-row"></tr>
   </table>
 </form>
+
+<mat-icon class="icon-add-task icon-check" (click)="addTask()">add</mat-icon>
 
 <mat-paginator [length]="200" [pageSizeOptions]="[5, 10, 20, 50]" (page)="handlePageEvent($event)">
 </mat-paginator>
