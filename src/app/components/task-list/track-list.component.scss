@@ -50,6 +50,11 @@ tr.element-row:not(.expanded-row):active {
 .content-column {
   display: flex;
   margin-right: 15px;
+  align-items: center;
+
+  mat-icon {
+    padding: 0 5px;
+  }
 }
 
 #icon-members {

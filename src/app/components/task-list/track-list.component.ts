@@ -3,6 +3,19 @@ import {animate, state, style, transition, trigger} from "@angular/animations";
 import {MatPaginator, PageEvent} from "@angular/material/paginator";
 import {MatTableDataSource} from "@angular/material/table";
 import {Sort} from "@angular/material/sort";
+import {Observable, Subscription} from "rxjs";
+import {IWsMessage, WebSocketService} from "../../core/websocket";
+
+
+export interface ITask {
+  task: string;
+  executor: string;
+  members: string[];
+  deadline: string;
+  dateOfCompleted: string;
+  status: string;
+  description: string;
+}
 
 
 @Component({
@@ -18,7 +31,6 @@ import {Sort} from "@angular/material/sort";
   ],
 })
 
-
 export class TaskListComponent implements AfterViewInit, OnInit {
 
   @ViewChild(MatPaginator) paginator: MatPaginator;
@@ -28,14 +40,43 @@ export class TaskListComponent implements AfterViewInit, OnInit {
   columnsToDisplayWithExpand = [...this.columnsToDisplay, 'expand'];
   expandedElement: ITask | null;
 
+  private message$: Observable<IWsMessage>;
+  private _subscriptionMessage$: Subscription;
+
+  private status$: Observable<boolean>;
+  private _subscriptionStatus$: Subscription;
+
+  constructor(private wsService: WebSocketService) {
+  }
+
   ngOnInit() {
+    this.message$ = this.wsService.on();
+    this._subscriptionMessage$ = this.message$.subscribe(data => {
+      this.wsMessageHandler(data);
+    })
+
+    if (this.wsService.isConnected) {
+      this.wsService.send({ typeOperation: 'getTaskList' })
+    }
+
+    this.status$ = this.wsService.status;
+    this._subscriptionStatus$ = this.status$.subscribe(status => {
+      if (status) {
+        this.wsService.send({ typeOperation: 'getTaskList' })
+      }
+    })
   }
 
   ngAfterViewInit() {
     this.dataSource.paginator = this.paginator;
   }
 
-  constructor() {
+  wsMessageHandler(data: IWsMessage) {
+    const typeOperation = data.typeOperation;
+
+    if (typeOperation == 'getTaskList') {
+
+    }
   }
 
   closeMembersList() {
@@ -65,16 +106,11 @@ export class TaskListComponent implements AfterViewInit, OnInit {
   sortChange(e: Sort) {
     console.log(e);
   }
-}
 
-export interface ITask {
-  task: string;
-  executor: string;
-  members: string[];
-  deadline: string;
-  dateOfCompleted: string;
-  status: string;
-  description: string;
+  ngOnDestroy() {
+    this._subscriptionStatus$.unsubscribe();
+    this._subscriptionMessage$.unsubscribe();
+  }
 }
 
 const ELEMENT_DATA: ITask[] = [
@@ -89,7 +125,7 @@ const ELEMENT_DATA: ITask[] = [
   },
   {
     task: '2',
-    executor: 'Anatoly',
+    executor: 'Anatoly Tereshonok',
     members: ['Oxygen', 'Gold', 'Hydrogen'],
     deadline: '23.12.22',
     dateOfCompleted: '21.12.22',

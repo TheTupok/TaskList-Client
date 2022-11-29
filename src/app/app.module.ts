@@ -10,6 +10,9 @@ import {MatPaginatorModule} from "@angular/material/paginator";
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import {MatIconModule} from "@angular/material/icon";
 import {ClickOutsideModule} from "ng4-click-outside";
+import {WebsocketModule} from "./core/websocket";
+
+import {environment} from "../environments/environment";
 
 @NgModule({
   declarations: [
@@ -24,7 +27,10 @@ import {ClickOutsideModule} from "ng4-click-outside";
     MatPaginatorModule,
     BrowserAnimationsModule,
     MatIconModule,
-    ClickOutsideModule
+    ClickOutsideModule,
+    WebsocketModule.config({
+      url: environment.ws
+    })
   ],
   providers: [],
   bootstrap: [AppComponent]
