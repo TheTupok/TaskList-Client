@@ -131,5 +131,5 @@
 
 <mat-icon class="icon-add-task icon-check" (click)="addTask()">add</mat-icon>
 
-<mat-paginator [length]="200" [pageSizeOptions]="[5, 10, 20, 50]" (page)="handlePageEvent($event)">
+<mat-paginator [length]="this.rowTaskValue" [pageSizeOptions]="[5, 10, 50, 100]" (page)="handlePageEvent($event)">
 </mat-paginator>

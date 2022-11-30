@@ -28,7 +28,6 @@ export class DateService {
     const currentDate = new Date(this.getCurrentDate());
     const deadlineDate = new Date(this.convertDate(date));
 
-    console.log(currentDate, deadlineDate)
     return currentDate >= deadlineDate;
   }
 }

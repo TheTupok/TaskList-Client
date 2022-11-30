@@ -1,4 +1,5 @@
 import {Observable} from 'rxjs';
+import {IPageData} from '../services/paginator.service';
 
 
 export interface IWebsocketService {
@@ -18,5 +19,6 @@ export interface WebSocketConfig {
 export interface IWsMessage {
   typeOperation: string,
   request?: any,
-  response?: any
+  response?: any,
+  pageData?: IPageData
 }

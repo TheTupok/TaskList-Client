@@ -1,24 +1,14 @@
-import {AfterViewInit, Component, OnInit, ViewChild} from '@angular/core';
+import {Component, OnInit, ViewChild} from '@angular/core';
 import {animate, state, style, transition, trigger} from "@angular/animations";
 import {MatPaginator, PageEvent} from "@angular/material/paginator";
-import {MatTableDataSource} from "@angular/material/table";
 import {Sort} from "@angular/material/sort";
 import {Observable, Subscription} from "rxjs";
 import {IWsMessage, WebSocketService} from "../../core/websocket";
 import {FormBuilder, FormGroup} from "@angular/forms";
 import {DateService} from "../../core/services/date.service";
-
-
-export interface ITask {
-  id: number;
-  taskName: string;
-  executor: string;
-  members: string[] | string;
-  deadline: string;
-  dateOfCompleted: string;
-  status: string;
-  description: string;
-}
+import {MemberListService} from "../../core/services/member-list.service";
+import {ITask} from "../../models/ITask";
+import {IPageData, PaginatorService} from "../../core/services/paginator.service";
 
 
 @Component({
@@ -34,20 +24,24 @@ export interface ITask {
   ],
 })
 
-export class TaskListComponent implements AfterViewInit, OnInit {
+export class TaskListComponent implements OnInit {
 
   @ViewChild(MatPaginator) paginator: MatPaginator;
 
   public formEditTask: FormGroup;
 
-  dataSource = new MatTableDataSource<ITask>();
   columnsToDisplay = ['taskName', 'executor', 'deadline', 'dateOfCompleted', 'status'];
   columnsToDisplayWithExpand = [...this.columnsToDisplay, 'expand'];
   expandedElement: ITask | null;
 
+  rowTaskValue: number;
   taskList: ITask[];
 
   editIdTask = 0;
+
+  private paginatorData: IPageData;
+  private paginatorData$: Observable<IPageData>;
+  private _subscriptionPageData$: Subscription
 
   private message$: Observable<IWsMessage>;
   private _subscriptionMessage$: Subscription;
@@ -57,7 +51,9 @@ export class TaskListComponent implements AfterViewInit, OnInit {
 
   constructor(private wsService: WebSocketService,
               private fb: FormBuilder,
-              public dateService: DateService) {
+              public dateService: DateService,
+              private memberListService: MemberListService,
+              private paginatorService: PaginatorService) {
   }
 
   ngOnInit() {
@@ -69,19 +65,22 @@ export class TaskListComponent implements AfterViewInit, OnInit {
     })
 
     if (this.wsService.isConnected) {
-      this.wsService.send({ typeOperation: 'getTaskList' })
+      this.wsService.send({ typeOperation: 'getRowValue' })
     }
 
     this.status$ = this.wsService.status;
     this._subscriptionStatus$ = this.status$.subscribe(status => {
       if (status) {
-        this.wsService.send({ typeOperation: 'getTaskList' })
+        this.wsService.send({ typeOperation: 'getRowValue' });
+        this._subscriptionStatus$.unsubscribe();
       }
     })
-  }
 
-  ngAfterViewInit() {
-    this.dataSource.paginator = this.paginator;
+    this.paginatorData$ = this.paginatorService.getPaginatorData();
+    this._subscriptionPageData$ = this.paginatorData$.subscribe(data => {
+      this.paginatorData = data;
+      this.wsService.send({ typeOperation: 'getTaskList', pageData: data })
+    })
   }
 
   private _createFormEditTask() {
@@ -98,6 +97,11 @@ export class TaskListComponent implements AfterViewInit, OnInit {
   wsMessageHandler(data: IWsMessage) {
     const typeOperation = data.typeOperation;
 
+    if (typeOperation == 'getRowValue') {
+      this.rowTaskValue = data['response'];
+      this.paginatorService.setPaginatorData({ pageIndex: this.paginator.pageIndex, pageSize: this.paginator.pageSize })
+    }
+
     if (typeOperation == 'getTaskList') {
       data['response'].forEach((item: ITask) => {
         if (typeof item.members === "string") {
@@ -109,28 +113,16 @@ export class TaskListComponent implements AfterViewInit, OnInit {
   }
 
   openMembersList(e: Event) {
-    this.closeMembersList();
-    e.stopPropagation();
-
-    const target = e.target as HTMLElement;
-    const parent = target.closest('td') as HTMLElement;
-    const contextMenu = parent.querySelector('.element-members-list') as HTMLElement;
-
-    contextMenu.style.top = target.getBoundingClientRect().bottom - 2 + 'px';
-    contextMenu.style.left = target.getBoundingClientRect().right - 2 + 'px';
-
-    contextMenu.classList.add('visible');
+    this.memberListService.openMembersList(e);
   }
 
   closeMembersList() {
-    const contextMenu = document.getElementsByClassName('element-members-list') as HTMLCollection;
-    Array.prototype.forEach.call(contextMenu, (elem) => {
-      elem.classList.remove('visible');
-    })
+    this.memberListService.closeMembersList();
   }
 
   addTask() {
     this.wsService.send({ typeOperation: 'newTask' })
+    this.paginatorService.setPaginatorData(this.paginatorData);
   }
 
   editTask(element: ITask) {
@@ -144,7 +136,9 @@ export class TaskListComponent implements AfterViewInit, OnInit {
   }
 
   deleteTask(elementId: number) {
-    this.wsService.send({ typeOperation: 'deleteTask', request: elementId });
+    this.wsService.send({ typeOperation: 'deleteTask', request: elementId }
+    );
+    this.paginatorService.setPaginatorData(this.paginatorData);
   }
 
   saveChangesTask(members: string[]) {
@@ -153,6 +147,7 @@ export class TaskListComponent implements AfterViewInit, OnInit {
     editTask.members = members;
 
     this.wsService.send({ typeOperation: 'editTask', request: editTask });
+    this.paginatorService.setPaginatorData(this.paginatorData);
 
     this.formEditTask.reset();
     this.editIdTask = 0;
@@ -182,7 +177,7 @@ export class TaskListComponent implements AfterViewInit, OnInit {
 
   cancelChangesTask() {
     this.editIdTask = 0;
-    this.wsService.send({ typeOperation: 'getTaskList' })
+    this.paginatorService.setPaginatorData(this.paginatorData);
     this.formEditTask.reset();
   }
 
@@ -195,8 +190,9 @@ export class TaskListComponent implements AfterViewInit, OnInit {
   }
 
   handlePageEvent(event: PageEvent) {
-    console.log(event);
+    this.paginatorService.setPaginatorData({ pageIndex: event.pageIndex, pageSize: event.pageSize });
   }
+
 
   sortChange(event: Sort) {
     console.log(event);
