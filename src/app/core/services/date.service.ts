@@ -8,8 +8,8 @@ export class DateService {
 
   public convertDate(date: string) {
     if (date) {
-      const [day, month, year] = date.split('.')
-      return year + '-' + month + '-' + day;
+      const [year, month, day] = date.split('-')
+      return day + '.' + month + '.' + year;
     } else {
       return '';
     }
@@ -26,7 +26,7 @@ export class DateService {
 
   public checkCurrentAndDeadlineDate(date: string) {
     const currentDate = new Date(this.getCurrentDate());
-    const deadlineDate = new Date(this.convertDate(date));
+    const deadlineDate = new Date(date);
 
     return currentDate >= deadlineDate;
   }

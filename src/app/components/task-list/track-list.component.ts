@@ -9,6 +9,7 @@ import {DateService} from "../../core/services/date.service";
 import {MemberListService} from "../../core/services/member-list.service";
 import {ITask} from "../../models/ITask";
 import {IPageData, PaginatorService} from "../../core/services/paginator.service";
+import {ISortData, SortTableService} from "../../core/services/sortTable.service";
 
 
 @Component({
@@ -43,6 +44,13 @@ export class TaskListComponent implements OnInit {
   private paginatorData$: Observable<IPageData>;
   private _subscriptionPageData$: Subscription
 
+  private sortData: ISortData = {
+    active: 'id',
+    direction: 'asc'
+  };
+  private sortData$: Observable<ISortData>;
+  private _subscriptionSortData$: Subscription
+
   private message$: Observable<IWsMessage>;
   private _subscriptionMessage$: Subscription;
 
@@ -53,7 +61,8 @@ export class TaskListComponent implements OnInit {
               private fb: FormBuilder,
               public dateService: DateService,
               private memberListService: MemberListService,
-              private paginatorService: PaginatorService) {
+              private paginatorService: PaginatorService,
+              private sortTableService: SortTableService) {
   }
 
   ngOnInit() {
@@ -76,10 +85,16 @@ export class TaskListComponent implements OnInit {
       }
     })
 
+    this.sortData$ = this.sortTableService.getSortData();
+    this._subscriptionSortData$ = this.sortData$.subscribe(data => {
+      this.sortData = data;
+      this.wsService.send({ typeOperation: 'getTaskList', sortData: data, pageData: this.paginatorData })
+    })
+
     this.paginatorData$ = this.paginatorService.getPaginatorData();
     this._subscriptionPageData$ = this.paginatorData$.subscribe(data => {
       this.paginatorData = data;
-      this.wsService.send({ typeOperation: 'getTaskList', pageData: data })
+      this.wsService.send({ typeOperation: 'getTaskList', pageData: data, sortData: this.sortData })
     })
   }
 
@@ -131,7 +146,6 @@ export class TaskListComponent implements OnInit {
     const dataTask = Object.fromEntries(Object.entries(element).filter(([key]) =>
       key != 'id' && key != 'members'
     ))
-    dataTask['deadline'] = this.dateService.convertDate(dataTask['deadline']);
     this.formEditTask.setValue(dataTask);
   }
 
@@ -195,11 +209,13 @@ export class TaskListComponent implements OnInit {
 
 
   sortChange(event: Sort) {
-    console.log(event);
+    this.sortTableService.setSortData({ active: event.active, direction: event.direction })
   }
 
   ngOnDestroy() {
     this._subscriptionStatus$.unsubscribe();
     this._subscriptionMessage$.unsubscribe();
+    this._subscriptionSortData$.unsubscribe();
+    this._subscriptionPageData$.unsubscribe();
   }
 }

@@ -1,5 +1,6 @@
 import {Observable} from 'rxjs';
 import {IPageData} from '../services/paginator.service';
+import {ISortData} from "../services/sortTable.service";
 
 
 export interface IWebsocketService {
@@ -20,5 +21,6 @@ export interface IWsMessage {
   typeOperation: string,
   request?: any,
   response?: any,
-  pageData?: IPageData
+  pageData?: IPageData,
+  sortData? : ISortData
 }
